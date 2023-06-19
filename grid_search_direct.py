@@ -269,7 +269,7 @@ for is_fuzzy in [True, False]:
             X, y, *_= load_mushroom(is_fuzzy)
         model = baseline(X.shape[1], 10, 3 if is_iris else 2,  target_conn1, target_conn2)
         main(dataset_name, model, X, y, 
-                model_name = "baseline", visualise = "nv", 
+                model_name = "direct", visualise = "nv", 
                 nth_run = 0, is_fuzzy = is_fuzzy, )
     
 
