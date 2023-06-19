@@ -256,11 +256,12 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
     print(f'Best parameters are {best_params} with score {best_score}')
 
 
-for is_fuzzy in [True, False]:
+for is_fuzzy in [False]:
     for dataset_name in ['iris', 'adult', 'mushroom']:
         is_iris = False
         target_conn1 = 5
         target_conn2 = 3
+        target_conn_skip = 3
         if dataset_name == 'iris':
             X, y, *_= load_iris(is_fuzzy)
             is_iris = True
@@ -269,7 +270,7 @@ for is_fuzzy in [True, False]:
             X, y, *_= load_adult(is_fuzzy)
         elif dataset_name == 'mushroom':
             X, y, *_= load_mushroom(is_fuzzy)
-        model = baseline(X.shape[1], 10, 3 if is_iris else 2,  target_conn1, target_conn2)
+        model = baseline(X.shape[1], 10, 10, 3 if is_iris else 2,  target_conn1, target_conn2, target_conn_skip)
         main(dataset_name, model, X, y, 
                 model_name = "multi", visualise = "nv", 
                 nth_run = 0, is_fuzzy = is_fuzzy, )
