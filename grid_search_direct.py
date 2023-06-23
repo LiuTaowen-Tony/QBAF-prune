@@ -6,8 +6,6 @@ from sklearn.model_selection import ParameterGrid
 import torch
 from torch import nn
 from torch.nn.utils import prune
-import time
-import cv2
 import csv
 import copy
 
@@ -125,16 +123,6 @@ def train(model: BaseModel, X, y, X_test, y_test, epochs, lr, decay):
         previous_loss = loss.item()
 
 
-
-# def accuracy(y_pred, y_true):
-#     classes = torch.argmax(y_pred, dim=1)
-#     if len(y_true.shape) > 1:
-#         labels = torch.argmax(y_true, dim=1)
-#     else:
-#         labels = y_true
-#     _accuracy = torch.mean((classes == labels).float())
-#     return _accuracy
-
 def test(model, x, y, name="Test"):
     y_pred = model(x)
     criterion = nn.CrossEntropyLoss()
@@ -174,23 +162,8 @@ def prune_model(model, params, X_train, y_train, X_val, y_val, visualise,
         model.prune()
 
 
-# def prune_model(model: BaseModel, X_train, y_train, X_test, y_test, visualise, nth_run,
-#                 dataset_name, model_name, is_fuzzy, lr, decay):
-#     for i in range(100):
-#         train(model, X_train, y_train, X_test, y_test, 100, lr,decay)
-#         test(model, X_test, y_test)
-#         connections = model.get_connections()
-#         print(connections)
-#         if visualise:
-#             visualize_neural_network(connections)
-#         if model.terminate_prune():
-#             break
-#         model.prune()
-
-
-
 # Define the hyperparameters for grid search
-param_grid = {'lr': [0.001,], 'decay': [0.0001, ]}
+param_grid = {'lr': [0.01], 'decay': [  0.0001]}
 
 # Your main function
 def main(dataset_name, model, X, y, *, model_name, visualise, nth_run, 
@@ -234,6 +207,8 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
                     visualise=is_visualise,  dataset_name=dataset_name,
                     model_name=model_name, is_fuzzy=is_fuzzy)
         file_name = f'{dataset_name}_{model_name}_{is_fuzzy}_{best_params}.csv'
+
+        train(model_copy, X_train, y_train, X_val, y_val, 20, 0.01, 0)
         import os
         if file_name not in os.listdir():
             with open(file_name, 'w') as f:
@@ -256,9 +231,9 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
 
 
 for is_fuzzy in [True, False]:
-    for dataset_name in ['iris', 'mushroom']:
+    for dataset_name in ['iris', 'mushroom', 'adult']:
         is_iris = False
-        target_conn1 = 4
+        target_conn1 = 5
         target_conn2 = 3
         target_conn_skip = 1
         if dataset_name == 'iris':
@@ -271,7 +246,7 @@ for is_fuzzy in [True, False]:
             X, y, *_= load_mushroom(is_fuzzy)
         model = baseline(X.shape[1], 10, 3 if is_iris else 2,  target_conn1, target_conn2, target_conn_skip)
         main(dataset_name, model, X, y, 
-                model_name = "direct", visualise = "nv", 
+                model_name = "direct_5_3_1", visualise = "nv", 
                 nth_run = 0, is_fuzzy = is_fuzzy, )
     
 
