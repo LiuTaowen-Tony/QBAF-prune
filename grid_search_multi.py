@@ -192,7 +192,7 @@ def prune_model(model, params, X_train, y_train, X_val, y_val, visualise,
 
 
 # Define the hyperparameters for grid search
-param_grid = {'lr': [0.01, 0.003, 0.001], 'decay': [0.01, 0.001, 0.0001]}
+param_grid = {'lr': [0.01,], 'decay': [0.001,]}
 
 # Your main function
 def main(dataset_name, model, X, y, *, model_name, visualise, nth_run, 
@@ -217,6 +217,7 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
                     visualise=is_visualise, dataset_name=dataset_name,
                     model_name=model_name, is_fuzzy=is_fuzzy)
         # Evaluate the model
+        train(model_copy, X_train, y_train, X_val, y_val, 20, 0.01, 0.0)
         if dataset_name == 'iris':
             a, *_ = test(model_copy, X_train, y_train)
         else:
@@ -256,8 +257,8 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
     print(f'Best parameters are {best_params} with score {best_score}')
 
 
-for is_fuzzy in [False]:
-    for dataset_name in ['iris', 'adult', 'mushroom']:
+for is_fuzzy in [False, True]:
+    for dataset_name in ['iris' ]:
         is_iris = False
         target_conn1 = 5
         target_conn2 = 3
@@ -272,7 +273,7 @@ for is_fuzzy in [False]:
             X, y, *_= load_mushroom(is_fuzzy)
         model = baseline(X.shape[1], 10, 10, 3 if is_iris else 2,  target_conn1, target_conn2, target_conn_skip)
         main(dataset_name, model, X, y, 
-                model_name = "multi", visualise = "nv", 
+                model_name = "multi_m", visualise = "nv", 
                 nth_run = 0, is_fuzzy = is_fuzzy, )
     
 

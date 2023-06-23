@@ -163,7 +163,7 @@ def prune_model(model, params, X_train, y_train, X_val, y_val, visualise,
     # Unpack parameters
     lr, decay = params['lr'], params['decay']
     for i in range(100):
-        train(model, X_train, y_train, X_val, y_val, 100, lr, decay)
+        train(model, X_train, y_train, X_val, y_val, 30, lr, decay)
         test(model, X_val, y_val)
         connections = model.get_connections()
         print(connections)
@@ -190,7 +190,7 @@ def prune_model(model, params, X_train, y_train, X_val, y_val, visualise,
 
 
 # Define the hyperparameters for grid search
-param_grid = {'lr': [0.01, 0.003, 0.001], 'decay': [0.01, 0.001, 0.0001]}
+param_grid = {'lr': [0.001,], 'decay': [0.0001, ]}
 
 # Your main function
 def main(dataset_name, model, X, y, *, model_name, visualise, nth_run, 
@@ -214,6 +214,7 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
         prune_model(model_copy, params, X_train, y_train, X_val, y_val, 
                     visualise=is_visualise, dataset_name=dataset_name,
                     model_name=model_name, is_fuzzy=is_fuzzy)
+        train(model_copy, X_train, y_train, X_val, y_val, 30, 0.01, 0)
         # Evaluate the model
         if dataset_name == 'iris':
             a, *_ = test(model_copy, X_train, y_train)
@@ -255,7 +256,7 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
 
 
 for is_fuzzy in [True, False]:
-    for dataset_name in ['iris', 'adult', 'mushroom']:
+    for dataset_name in ['iris', 'mushroom']:
         is_iris = False
         target_conn1 = 4
         target_conn2 = 3

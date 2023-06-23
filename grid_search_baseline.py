@@ -223,6 +223,7 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
                     visualise=is_visualise,  dataset_name=dataset_name,
                     model_name=model_name, is_fuzzy=is_fuzzy)
         file_name = f'{dataset_name}_{model_name}_{is_fuzzy}_{best_params}.csv'
+        train(model_copy, X_train, y_train, X_val, y_val, 20, 0.01, 0)
         import os
         if file_name not in os.listdir():
             with open(file_name, 'w') as f:
@@ -245,14 +246,13 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
 
 
 for is_fuzzy in [True, False]:
-    for dataset_name in ['iris', 'adult', 'mushroom']:
+    for dataset_name in ['iris']:
         is_iris = False
         target_conn1 = 5
         target_conn2 = 3
         if dataset_name == 'iris':
             X, y, *_= load_iris(is_fuzzy)
             is_iris = True
-            target_conn1 = 5
         elif dataset_name == 'adult':
             X, y, *_= load_adult(is_fuzzy)
         elif dataset_name == 'mushroom':
