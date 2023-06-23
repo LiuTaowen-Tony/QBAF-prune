@@ -113,7 +113,6 @@ def train(model: BaseModel, X, y, X_test, y_test, epochs, lr, decay):
         previous_loss = loss.item()
 
 
-
 def test(model, x, y, name="Test"):
     y_pred = model(x)
     criterion = nn.CrossEntropyLoss()
@@ -154,9 +153,8 @@ def prune_model(model, params, X_train, y_train, X_val, y_val, visualise,
 
 
 # Define the hyperparameters for grid search
-param_grid = {'lr': [0.1, 0.01, 0.001] ,'decay': [0.0001 ,0.0003, 0.00001]}
+param_grid = {'lr': [0.1, 0.01, 0.003, 0.001] ,'decay': [0.0001 ,0.0003, 0.00001]}
 
-# Your main function
 def main(dataset_name, model, X, y, *, model_name, visualise, nth_run, 
          is_fuzzy):
 
