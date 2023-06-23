@@ -163,7 +163,7 @@ def prune_model(model, params, X_train, y_train, X_val, y_val, visualise,
     # Unpack parameters
     lr, decay = params['lr'], params['decay']
     for i in range(100):
-        train(model, X_train, y_train, X_val, y_val, 100, lr, decay)
+        train(model, X_train, y_train, X_val, y_val, 30, lr, decay)
         test(model, X_val, y_val)
         connections = model.get_connections()
         print(connections)
@@ -190,7 +190,7 @@ def prune_model(model, params, X_train, y_train, X_val, y_val, visualise,
 
 
 # Define the hyperparameters for grid search
-param_grid = {'lr': [0.01, 0.003, 0.001], 'decay': [0.01, 0.001, 0.0001]}
+param_grid = {'lr': [0.01], 'decay': [  0.0001]}
 
 # Your main function
 def main(dataset_name, model, X, y, *, model_name, visualise, nth_run, 
@@ -233,6 +233,8 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
                     visualise=is_visualise,  dataset_name=dataset_name,
                     model_name=model_name, is_fuzzy=is_fuzzy)
         file_name = f'{dataset_name}_{model_name}_{is_fuzzy}_{best_params}.csv'
+
+        train(model_copy, X_train, y_train, X_val, y_val, 20, 0.01, 0)
         import os
         if file_name not in os.listdir():
             with open(file_name, 'w') as f:
@@ -255,9 +257,9 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
 
 
 for is_fuzzy in [True, False]:
-    for dataset_name in ['iris', 'adult', 'mushroom']:
+    for dataset_name in [ 'adult']:
         is_iris = False
-        target_conn1 = 4
+        target_conn1 = 5
         target_conn2 = 3
         target_conn_skip = 1
         if dataset_name == 'iris':
@@ -270,7 +272,7 @@ for is_fuzzy in [True, False]:
             X, y, *_= load_mushroom(is_fuzzy)
         model = baseline(X.shape[1], 10, 3 if is_iris else 2,  target_conn1, target_conn2, target_conn_skip)
         main(dataset_name, model, X, y, 
-                model_name = "direct", visualise = "nv", 
+                model_name = "direct_5_3_1", visualise = "nv", 
                 nth_run = 0, is_fuzzy = is_fuzzy, )
     
 

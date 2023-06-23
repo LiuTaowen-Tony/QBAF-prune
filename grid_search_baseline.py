@@ -153,7 +153,7 @@ def prune_model(model, params, X_train, y_train, X_val, y_val, visualise,
     # Unpack parameters
     lr, decay = params['lr'], params['decay']
     for i in range(100):
-        train(model, X_train, y_train, X_val, y_val, 100, lr, decay)
+        train(model, X_train, y_train, X_val, y_val, 30, lr, decay)
         test(model, X_val, y_val)
         connections = model.get_connections()
         print(connections)
@@ -180,7 +180,7 @@ def prune_model(model, params, X_train, y_train, X_val, y_val, visualise,
 
 
 # Define the hyperparameters for grid search
-param_grid = {'lr': [0.01, 0.003, 0.001], 'decay': [0.01, 0.001, 0.0001]}
+param_grid = {'lr': [0.01,] ,'decay': [ 0.0003]}
 
 # Your main function
 def main(dataset_name, model, X, y, *, model_name, visualise, nth_run, 
@@ -204,7 +204,8 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
         prune_model(model_copy, params, X_train, y_train, X_val, y_val, 
                     visualise=is_visualise, dataset_name=dataset_name,
                     model_name=model_name, is_fuzzy=is_fuzzy)
-        # Evaluate the model
+        train(model_copy, X_train, y_train, X_val, y_val, 20, 0.01, 0)
+        # Evaluate the mode
         if dataset_name == 'iris':
             a, *_ = test(model_copy, X_train, y_train)
         else:
@@ -213,6 +214,7 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
             best_score = a
             best_params = params
             # best_model = model_copy
+    exit()
 
     # Evaluate the best model on the test set
     # test(best_model, X_test, y_test, "Test")
@@ -245,10 +247,10 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
 
 
 for is_fuzzy in [True, False]:
-    for dataset_name in ['iris', 'adult', 'mushroom']:
+    for dataset_name in ['adult']:
         is_iris = False
-        target_conn1 = 5
-        target_conn2 = 3
+        target_conn1 = 6
+        target_conn2 = 4
         if dataset_name == 'iris':
             X, y, *_= load_iris(is_fuzzy)
             is_iris = True
@@ -259,7 +261,7 @@ for is_fuzzy in [True, False]:
             X, y, *_= load_mushroom(is_fuzzy)
         model = baseline(X.shape[1], 10, 3 if is_iris else 2,  target_conn1, target_conn2)
         main(dataset_name, model, X, y, 
-                model_name = "baseline", visualise = "nv", 
+                model_name = "baseline_6_4", visualise = "nv", 
                 nth_run = 0, is_fuzzy = is_fuzzy, )
     
 
