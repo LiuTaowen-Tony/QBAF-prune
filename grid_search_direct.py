@@ -1,8 +1,5 @@
-# Import necessary libraries
 import numpy as np
 from sklearn.model_selection import ParameterGrid
-# ... other imports ...
-
 import torch
 from torch import nn
 from torch.nn.utils import prune
@@ -17,7 +14,6 @@ from datasets.mushrooms import load_mushroom
 from sklearn.model_selection import train_test_split
 from visualise import visualize_neural_network
 
-# import dataloader
 from torch.utils.data import DataLoader, TensorDataset
 
 
@@ -31,7 +27,72 @@ class BaseModel(nn.Module):
     def terminate_prune(self):
         pass
 
-class baseline(BaseModel):
+
+
+class multi(BaseModel):
+    def __init__(self, 
+                 input_size, 
+                 hidden_size1, 
+                 hidden_size2, 
+                 output_size,
+                 target_conn1,
+                 target_conn2,
+                 target_conn3) -> None:
+        super().__init__()
+        self.input_size = input_size
+        self.hidden_size1 = hidden_size1
+        self.hidden_size2 = hidden_size2
+        self.output_size = output_size
+        self.linear1 = nn.Linear(input_size, hidden_size1)
+        self.linear2 = nn.Linear(hidden_size1, hidden_size2)
+        self.linear3 = nn.Linear(hidden_size2, output_size)
+        self.sigmoid = nn.Sigmoid()
+        self.softmax = nn.Softmax(dim=1)
+        self.target_conn1 = target_conn1
+        self.target_conn2 = target_conn2
+        self.target_conn3 = target_conn3
+
+    def forward(self, x):
+        x = self.linear1(x)
+        x = self.sigmoid(x)
+        x = self.linear2(x)
+        x = self.sigmoid(x)
+        x = self.linear3(x)
+        return self.softmax(x)
+    
+    def conn_sum(self):
+        conn0 = self.linear1.weight.data
+        conn1 = self.linear2.weight.data
+        conn_skip = self.linear3.weight.data
+        conn0_sum = conn0.abs().sum().item()
+        conn1_sum = conn1.abs().sum().item()
+        conn_skip_sum = conn_skip.abs().sum().item()
+        return conn0_sum + conn1_sum + conn_skip_sum
+
+    def get_connections(self):
+        conn0 = self.linear1.weight.data
+        conn1 = self.linear2.weight.data
+        conn_skip = self.linear3.weight.data
+        conn0 = conn0.nonzero().tolist()
+        conn1 = conn1.nonzero().tolist()
+        conn_skip = conn_skip.nonzero().tolist()
+        return conn0, conn1, conn_skip
+
+    def prune(self):
+        conn0, conn1, conn2 = self.get_connections()
+        if len(conn0) > self.target_conn1:
+            prune.l1_unstructured(self.linear1, name='weight', amount=0.3)
+        if len(conn1) > self.target_conn2:
+            prune.l1_unstructured(self.linear2, name='weight', amount=0.3)
+        if len(conn2) > self.target_conn3:
+            prune.l1_unstructured(self.linear3, name='weight', amount=0.3)
+
+    def terminate_prune(self):
+        conn0, conn1, conn2 = self.get_connections()
+        return len(conn0) <= self.target_conn1 and len(conn1) <= self.target_conn2 and len(conn2) <= self.target_conn3
+
+
+class direct(BaseModel):
     def __init__(self, 
                  input_size, 
                  hidden_size, 
@@ -93,11 +154,15 @@ class baseline(BaseModel):
 
 
 def train(model: BaseModel, X, y, X_test, y_test, epochs, lr, decay):
+    """
+    train a model with l2 regularization,
+    terminate when total weight doesn't change or loss doesn't change
+    the model can be further pruned
+    """
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=decay)
     loader = DataLoader(TensorDataset(X, y), batch_size=32, shuffle=True)
-
-    previous_conn_sum = 0
+    previous_total_weight = 0
     previous_loss = 0
     for epoch in range(epochs):
         for x_b, y_b in loader:
@@ -106,24 +171,28 @@ def train(model: BaseModel, X, y, X_test, y_test, epochs, lr, decay):
             loss = criterion(y_pred, y_b)
             loss.backward()
             optimizer.step()
-            conn_sum = model.conn_sum()
+            total_weight = model.total_weight()
 
         if epoch % 10 == 0:
             test(model, X_test, y_test)
             test(model, X, y, "Train")
             print(f'Epoch {epoch} loss: {loss.item()}')
-            print(f'Number of connections: {conn_sum}')
+            print(f'Weight of connections: {total_weight}')
         
-        if abs(conn_sum - previous_conn_sum) < 0.002:
+        # termination: either loss doesn't change or total weight doesn't change
+        if abs(total_weight - previous_total_weight) < 0.002:
             return
-
         if abs(loss.item() - previous_loss) < 0.0002:
             return
-        previous_conn_sum = conn_sum
+        previous_total_weight = total_weight
         previous_loss = loss.item()
 
 
+
 def test(model, x, y, name="Test"):
+    """
+    test a model with accuracy, precision, recall, f1 score
+    """
     y_pred = model(x)
     criterion = nn.CrossEntropyLoss()
     loss = criterion(y_pred, y)
@@ -146,12 +215,19 @@ def test(model, x, y, name="Test"):
     return (test_acc.item(), test_pre.item(), test_rec.item(), test_f1.item())
 
 
-def prune_model(model, params, X_train, y_train, X_val, y_val, visualise, 
-                dataset_name, model_name, is_fuzzy):
+def prune_model(model, params, X_train, y_train, X_val, y_val, visualise):
+    """
+    prune a model with given parameters,
+    terminate when reach termination condition
+
+    iteratively train and prune the model
+
+    (when reach target number of connections)
+    """
     # Unpack parameters
     lr, decay = params['lr'], params['decay']
     for i in range(100):
-        train(model, X_train, y_train, X_val, y_val, 30, lr, decay)
+        train(model, X_train, y_train, X_val, y_val, 100, lr, decay)
         test(model, X_val, y_val)
         connections = model.get_connections()
         print(connections)
@@ -162,12 +238,36 @@ def prune_model(model, params, X_train, y_train, X_val, y_val, visualise,
         model.prune()
 
 
+
+
+
 # Define the hyperparameters for grid search
 param_grid = {'lr': [0.1, 0.01, 0.003, 0.001] ,'decay': [0.0001 ,0.0003, 0.00001]}
 
 # Your main function
 def main(dataset_name, model, X, y, *, model_name, visualise, nth_run, 
          is_fuzzy):
+    """
+    Perform grid search on hyperparameters and prune the model
+    Parameters
+    ----------
+    dataset_name : str
+        Name of the dataset
+    model : BaseModel
+        The model to be pruned
+    X : np.ndarray
+        The input data
+    y : np.ndarray
+        The target data
+    model_name : str
+        Name of the model
+    visualise : str
+        Whether to visualise the neural network
+    nth_run : int   
+        The nth run of the experiment
+    is_fuzzy : bool
+        Whether the input is fuzzy
+    """
 
     is_visualise = visualise == "visualise"
 
@@ -184,11 +284,13 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
     # Perform grid search on hyperparameters
     for params in ParameterGrid(param_grid):
         model_copy = copy.deepcopy(model)  # Copy the model to avoid in-place changes
+        # iteratively train and prune the model
         prune_model(model_copy, params, X_train, y_train, X_val, y_val, 
-                    visualise=is_visualise, dataset_name=dataset_name,
-                    model_name=model_name, is_fuzzy=is_fuzzy)
-        train(model_copy, X_train, y_train, X_val, y_val, 30, 0.01, 0)
-        # Evaluate the model
+                    visualise=is_visualise)
+        
+        # model is pruned, train the model again to get the final score
+        train(model_copy, X_train, y_train, X_val, y_val, 20, 0.01, 0.0)
+        # test the model
         if dataset_name == 'iris':
             a, *_ = test(model_copy, X_train, y_train)
         else:
@@ -196,19 +298,12 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
         if a > best_score:
             best_score = a
             best_params = params
-            # best_model = model_copy
 
-    # Evaluate the best model on the test set
-    # test(best_model, X_test, y_test, "Test")
-    
     for i in range(10):
         model_copy = copy.deepcopy(model)
         prune_model(model_copy, best_params, X_train, y_train, X_val, y_val,
-                    visualise=is_visualise,  dataset_name=dataset_name,
-                    model_name=model_name, is_fuzzy=is_fuzzy)
+                    visualise=is_visualise)
         file_name = f'{dataset_name}_{model_name}_{is_fuzzy}_{best_params}.csv'
-
-        train(model_copy, X_train, y_train, X_val, y_val, 20, 0.01, 0)
         import os
         if file_name not in os.listdir():
             with open(file_name, 'w') as f:
@@ -217,25 +312,21 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
         with open(file_name, 'a') as f:
             test_acc, precision, recall, f1 = test(model_copy, X_test, y_test)
             writer = csv.writer(f)
-            writer.writerow(
-                [
-                    str(model_copy.get_connections()),
-                    round(test_acc, 4),
-                    round(precision, 4),
-                    round(recall, 4),
-                    round(f1, 4),
-                ]
-            )
+            writer.writerow([str(model_copy.get_connections()),
+                            round(test_acc, 4),
+                            round(precision, 4),
+                            round(recall, 4),
+                            round(f1, 4), ])
 
     print(f'Best parameters are {best_params} with score {best_score}')
 
 
-for is_fuzzy in [True, False]:
-    for dataset_name in ['iris', 'mushroom', 'adult']:
+for is_fuzzy in [False, True]:
+    for dataset_name in ['iris' ]:
         is_iris = False
         target_conn1 = 5
         target_conn2 = 3
-        target_conn_skip = 1
+        target_conn_skip = 3
         if dataset_name == 'iris':
             X, y, *_= load_iris(is_fuzzy)
             is_iris = True
@@ -244,16 +335,8 @@ for is_fuzzy in [True, False]:
             X, y, *_= load_adult(is_fuzzy)
         elif dataset_name == 'mushroom':
             X, y, *_= load_mushroom(is_fuzzy)
-        model = baseline(X.shape[1], 10, 3 if is_iris else 2,  target_conn1, target_conn2, target_conn_skip)
+        model = direct(X.shape[1], 10, 10, 3 if is_iris else 2,  target_conn1, target_conn2, target_conn_skip)
         main(dataset_name, model, X, y, 
-                model_name = "direct_5_3_1", visualise = "nv", 
+                model_name = "direct", visualise = "nv", 
                 nth_run = 0, is_fuzzy = is_fuzzy, )
     
-
-
-
-
-
-
-# Define your prune_model function
-
