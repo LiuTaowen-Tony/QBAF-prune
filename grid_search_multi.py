@@ -203,6 +203,7 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
     is_fuzzy : bool
         Whether the input is fuzzy
     """
+    np.random.seed(42)
 
     is_visualise = visualise == "visualise"
 
@@ -257,7 +258,7 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
 
 
 for is_fuzzy in [False, True]:
-    for dataset_name in ['iris' ]:
+    for dataset_name in ['iris', 'mushroom', 'adult' ]:
         is_iris = False
         target_conn1 = 5
         target_conn2 = 3

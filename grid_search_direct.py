@@ -247,6 +247,8 @@ param_grid = {'lr': [0.1, 0.01, 0.003, 0.001] ,'decay': [0.0001 ,0.0003, 0.00001
 # Your main function
 def main(dataset_name, model, X, y, *, model_name, visualise, nth_run, 
          is_fuzzy):
+
+    np.random.seed(0)
     """
     Perform grid search on hyperparameters and prune the model
     Parameters
@@ -322,7 +324,7 @@ def main(dataset_name, model, X, y, *, model_name, visualise, nth_run,
 
 
 for is_fuzzy in [False, True]:
-    for dataset_name in ['iris' ]:
+    for dataset_name in ['iris', 'mushroom', 'adult' ]:
         is_iris = False
         target_conn1 = 5
         target_conn2 = 3
