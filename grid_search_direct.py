@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 
 class BaseModel(nn.Module):
-    def conn_sum(self):
+    def total_weight(self):
         pass
     def get_connections(self):
         pass
@@ -60,7 +60,7 @@ class multi(BaseModel):
         x = self.linear3(x)
         return self.softmax(x)
     
-    def conn_sum(self):
+    def total_weight(self):
         conn0 = self.linear1.weight.data
         conn1 = self.linear2.weight.data
         conn_skip = self.linear3.weight.data
@@ -121,7 +121,7 @@ class direct(BaseModel):
         x = x + tmp
         return self.softmax(x)
     
-    def conn_sum(self):
+    def total_weight(self):
         conn0 = self.linear1.weight.data
         conn1 = self.linear2.weight.data
         conn_skip = self.linear_skip.weight.data
@@ -335,7 +335,7 @@ for is_fuzzy in [False, True]:
             X, y, *_= load_adult(is_fuzzy)
         elif dataset_name == 'mushroom':
             X, y, *_= load_mushroom(is_fuzzy)
-        model = direct(X.shape[1], 10, 10, 3 if is_iris else 2,  target_conn1, target_conn2, target_conn_skip)
+        model = direct(X.shape[1], 10,  3 if is_iris else 2,  target_conn1, target_conn2, target_conn_skip)
         main(dataset_name, model, X, y, 
                 model_name = "direct", visualise = "nv", 
                 nth_run = 0, is_fuzzy = is_fuzzy, )

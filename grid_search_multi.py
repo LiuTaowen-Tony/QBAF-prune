@@ -261,7 +261,7 @@ for is_fuzzy in [False, True]:
         is_iris = False
         target_conn1 = 5
         target_conn2 = 3
-        target_conn_skip = 3
+        target_conn_multi = 3
         if dataset_name == 'iris':
             X, y, *_= load_iris(is_fuzzy)
             is_iris = True
@@ -270,7 +270,7 @@ for is_fuzzy in [False, True]:
             X, y, *_= load_adult(is_fuzzy)
         elif dataset_name == 'mushroom':
             X, y, *_= load_mushroom(is_fuzzy)
-        model = multi(X.shape[1], 10, 10, 3 if is_iris else 2,  target_conn1, target_conn2, target_conn_skip)
+        model = multi(X.shape[1], 10, 10, 3 if is_iris else 2,  target_conn1, target_conn2, target_conn_multi)
         main(dataset_name, model, X, y, 
                 model_name = "multi_m", visualise = "nv", 
                 nth_run = 0, is_fuzzy = is_fuzzy, )
